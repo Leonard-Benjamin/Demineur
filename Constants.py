@@ -119,13 +119,17 @@ def sectorize(position):
     return (x, 0, z)
 
 HIDED_CELL = tex_coords((0, 0), (0, 0), (0, 0))
-ONE = tex_coords((0, 1), (0, 1), (0, 1))
-FIVE = tex_coords((0, 2), (0, 2), (0, 2))
-THREE = tex_coords((2, 1), (2, 1), (2, 1))
-FOUR = tex_coords((3, 1), (3, 1), (3, 1))
 BOMB = tex_coords((3, 0), (3, 0), (3, 0)) # Bas ->
 FLAG = tex_coords((2, 0), (2, 0), (2, 0))
-TWO = tex_coords((0, 3), (0, 3), (0, 3))
 RESET = tex_coords((1, 2), (1, 2), (1, 2))
-SEVEN = tex_coords((2, 2), (2, 2), (2, 2))
 EMPTY = tex_coords((3, 2), (3, 2), (3, 2))
+ROOF = tex_coords((2, 2), (2, 2), (2, 2))
+
+ONE = tex_coords((0, 1), (0, 1), (0, 1))
+TWO = tex_coords((0, 3), (0, 3), (0, 3))
+THREE = tex_coords((2, 1), (2, 1), (2, 1))
+FOUR = tex_coords((3, 1), (3, 1), (3, 1))
+FIVE = tex_coords((0, 2), (0, 2), (0, 2))
+SIX = tex_coords((1, 3), (1, 3), (1, 3))
+SEVEN = tex_coords((2, 3), (2, 3), (2, 3))
+EIGHT = tex_coords((3, 3), (3, 3), (3, 3))

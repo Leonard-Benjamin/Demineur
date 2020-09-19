@@ -18,6 +18,8 @@ class Window(pyglet.window.Window):
 
         self.is_losse = False
 
+        self.is_win = False
+
         # Whether or not the window exclusively captures the mouse.
         self.exclusive = False
 
@@ -299,19 +301,15 @@ class Window(pyglet.window.Window):
         x, y, z = block
         return x, z
 
-    def display_bomb(self):
-        # TODO
-        pass
-
-    def set_loose(self, is_losse = True):
+    def set_reset(self):
         center_x, center_z = self.model.get_grid_center()
         for y in range(1, 4):
-            if is_losse:
+            if self.is_losse or self.is_win:
                 self.model.add_block((center_x, y, center_z), RESET, immediate = True)
-                #display_bomb()
+
             else:
                 self.model.remove_block((center_x, y, center_z))
-        self.is_losse = is_losse
+                #display_bomb()
 
     def on_mouse_press(self, x, y, button, modifiers):
         """ Called when a mouse button is pressed. See pyglet docs for button
@@ -335,8 +333,10 @@ class Window(pyglet.window.Window):
             block, previous = self.model.hit_test(self.position, vector)
             print(str(block))
             if(self.model.world[block] == RESET):
-                self.model.gen_demineur(True)
-                self.set_loose(False)
+                self.is_losse = False
+                self.is_win = False
+                self.set_reset()
+                self.model.gen_demineur(True, self.is_win)
                 return
 
             if not self.is_losse and block[1] == 0:
@@ -345,14 +345,15 @@ class Window(pyglet.window.Window):
                     # ON OSX, control + left click = right click.
                     if cell.state != cell._REVEALED and not cell.flagged:
                         if cell.is_bomb:
-                            self.model.add_block(block, BOMB)
-                            self.set_loose()
+                            self.model.display_bombs()
+                            self.is_losse = True
+                            self.set_reset()
                         else:
                             self.model.reveal(cell, block)
                 elif (button == mouse.LEFT) and (modifiers & key.MOD_CTRL):
                     cell.flagged = not cell.flagged
                     if cell.flagged:
-                        self.model.add_block(block, SEVEN)
+                        self.model.add_block(block, FLAG)
                     else:
                         self.model.add_block(block, HIDED_CELL)
             '''elif button == pyglet.window.mouse.LEFT and block:
@@ -360,6 +361,9 @@ class Window(pyglet.window.Window):
                 self.model.remove_block(block)'''
         else:
             self.set_exclusive_mouse(True)
+        if self.model.get_number_of_cell_hidded() == self.model.get_number_of_bombs():
+            self.is_win = True
+            self.set_reset()
 
     def on_mouse_motion(self, x, y, dx, dy):
         """ Called when the player moves the mouse.
@@ -400,6 +404,14 @@ class Window(pyglet.window.Window):
             self.strafe[1] -= 1
         elif symbol == key.D:
             self.strafe[1] += 1
+        elif symbol == key.A:
+            self.model.display_bombs()
+        elif symbol == key.E:
+            if (self.is_losse or self.is_win):
+                self.is_losse = False
+                self.is_win = False
+                self.set_reset()
+            self.model.gen_demineur(True, self.is_win)
         elif symbol == key.SPACE:
             if self.jumped:
                 print("set flying")
@@ -547,6 +559,8 @@ class Window(pyglet.window.Window):
         self.label.text = "Bomb : {}, Revealed cell : {}, Hidded cell : {}".format(self.model.get_number_of_bombs(), self.model.get_number_of_cell_revealed(), self.model.get_number_of_cell_hidded())
         if self.is_losse:
             self.game_status.text = " GAME OVER"
+        elif self.is_win:
+            self.game_status.text = "WIN"
         else:
             self.game_status.text = ""
         self.label.draw()
