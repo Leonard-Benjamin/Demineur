@@ -1,0 +1,70 @@
+        '''
+        #BinaryTree generation
+
+        lines = 75
+        columns = 75
+        btd = BinaryTreeDungeon(lines, columns, False)
+        btd.root.finals_leafs()
+        draw_finals(lines, columns)
+
+        finals = btd.root.get_finals()
+
+        for final in finals:
+            for line in range(final.lines):
+                for col in range(final.columns):
+                    if final.weight > BLOCK_LINES * BLOCK_COLUMN:
+                        if not (line == 0 or line == final.lines - 1 or col == 0 or col == final.columns - 1):
+                            self.add_block((final.start_line + line, -1, final.start_column + col), EMPTY, immediate = False)
+                            self.add_block((final.start_line + line, 3, final.start_column + col), HIDED_CELL, immediate = False)
+                        else:
+                            self.add_block((final.start_line + line, -1, final.start_column + col), HIDED_CELL, immediate = False)
+                            self.add_block((final.start_line + line, 0, final.start_column + col), EMPTY, immediate = False)
+                            self.add_block((final.start_line + line, 1, final.start_column + col), EMPTY, immediate = False)
+                            self.add_block((final.start_line + line, 2, final.start_column + col), EMPTY, immediate = False)
+                            self.add_block((final.start_line + line, 3, final.start_column + col), EMPTY, immediate = False)
+                            #self.add_block((final.start_line + line, 4, final.start_column + col), WOOD, immediate = False)
+        '''
+        '''
+        #Noise generation
+        gen = NoiseGen(9990999)
+
+        n = 128 #size of the world
+        s = 1  # step size
+        y = 0  # initial y height
+        
+        #too lazy to do this properly lol
+        heightMap = []
+        for x in xrange(0, n, s):
+            for z in xrange(0, n, s):
+                heightMap.append(0)
+        for x in xrange(0, n, s):
+            for z in xrange(0, n, s):
+                heightMap[z + x * n] = int(gen.getHeight(x, z))
+
+        #Generate the world
+        for x in xrange(0, n, s):
+            for z in xrange(0, n, s):
+                h = heightMap[z + x * n]
+                if (h < 15):
+                    self.add_block((x, h, z), SAND, immediate=False)
+                    for y in range (h, 15):
+                        self.add_block((x, y, z), WATER, immediate=False)
+                    continue
+                if (h < 18):
+                    self.add_block((x, h, z), SAND, immediate=False)
+                self.add_block((x, h, z), GRASS, immediate=False)
+                for y in xrange(h - 1, 0, -1):
+                    self.add_block((x, y, z), STONE, immediate=False)
+                #Maybe add tree at this (x, z)
+                if (h > 20):
+                    if random.randrange(0, 1000) > 990:
+                        treeHeight = random.randrange(5, 7)
+                        #Tree trunk
+                        for y in xrange(h + 1, h + treeHeight):
+                            self.add_block((x, y, z), WOOD, immediate=False)
+                        #Tree leaves
+                        leafh = h + treeHeight
+                        for lz in xrange(z + -2, z + 3):
+                            for lx in xrange(x + -2, x + 3): 
+                                for ly in xrange(3):
+                                    self.add_block((lx, leafh + ly, lz), LEAF, immediate=False)'''
