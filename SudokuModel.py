@@ -49,7 +49,3 @@ class SudokuModel(Model):
 				text += "({}, {})".format(str(len(cell.possible_values)), str(cell.number))
 				self.reveal(cell)
 			print(text)
-
-sm = SudokuModel()
-sm.gen_sudoku_model()
-

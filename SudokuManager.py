@@ -47,14 +47,7 @@ class SudokuManager(object):
 		return False
 
 	def is_valid(self, grid):
-		'''for i in range(9):
-			if (self.has_duplicate([cell.number for line in grid for cell in line if cell.x == i and cell.number != 0]) or
-				self.has_duplicate([cell.number for line in grid for cell in line if cell.z == i and cell.number != 0]) or
-				self.has_duplicate([cell.number for line in grid for cell in line if cell.region == i and cell.number != 0])):
-				return False
-		return True
-
-		'''# Check raws and columns 
+		# Check raws and columns 
 		for line in range(0, self.max_lines):
 			raw_line = []
 			raw_col = []
@@ -139,26 +132,6 @@ class SudokuManager(object):
 					return result
 			grid[r][c].number = 0
 		return grid
-
-	def place_number(self, grid):
-		number = self.get_random(self.max_lines) 
-		x = self.get_random(self.max_lines - 1)
-		z = self.get_random(self.max_lines - 1)
-		if grid[x][z] and grid[x][z].number == 0:
-			grid[x][z].number = number
-			if not self.is_valid(grid):
-				grid[x][z].number = 0
-				for i in range(1, self.max_lines):
-					grid[x][z].number = i
-					if not self.is_valid(grid):
-						grid[x][z].number = 0
-					else:
-						return grid
-				return self.place_number(grid)
-			else: 
-				return grid
-		else:
-			return self.place_number(grid)
 
 	def gen_empty_grid(self):
 		listoflists = []
