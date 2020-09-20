@@ -14,7 +14,7 @@ class GridManager(object):
 		for i in range(0, self.max_lines):
 			sublist = []
 			for j in range(0, self.max_cols):
-				sublist.append(Cell(i, j, 0, False))
+				sublist.append(Cell(i, 0, j, 0, False))
 			listoflists.append(sublist)
 		return listoflists
 

@@ -1,28 +1,7 @@
         '''
         #BinaryTree generation
 
-        lines = 75
-        columns = 75
-        btd = BinaryTreeDungeon(lines, columns, False)
-        btd.root.finals_leafs()
-        draw_finals(lines, columns)
-
-        finals = btd.root.get_finals()
-
-        for final in finals:
-            for line in range(final.lines):
-                for col in range(final.columns):
-                    if final.weight > BLOCK_LINES * BLOCK_COLUMN:
-                        if not (line == 0 or line == final.lines - 1 or col == 0 or col == final.columns - 1):
-                            self.add_block((final.start_line + line, -1, final.start_column + col), EMPTY, immediate = False)
-                            self.add_block((final.start_line + line, 3, final.start_column + col), HIDED_CELL, immediate = False)
-                        else:
-                            self.add_block((final.start_line + line, -1, final.start_column + col), HIDED_CELL, immediate = False)
-                            self.add_block((final.start_line + line, 0, final.start_column + col), EMPTY, immediate = False)
-                            self.add_block((final.start_line + line, 1, final.start_column + col), EMPTY, immediate = False)
-                            self.add_block((final.start_line + line, 2, final.start_column + col), EMPTY, immediate = False)
-                            self.add_block((final.start_line + line, 3, final.start_column + col), EMPTY, immediate = False)
-                            #self.add_block((final.start_line + line, 4, final.start_column + col), WOOD, immediate = False)
+        
         '''
         '''
         #Noise generation

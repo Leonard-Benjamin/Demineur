@@ -106,9 +106,6 @@ class IntermediateLeaf(Leaf):
     def get_finals(self):
         return finals
 
-    def finals_leafs(self):
-        print(str(len(finals))+ " finals")
-
 class BinaryTreeDungeon:
     root = None
 

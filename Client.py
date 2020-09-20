@@ -44,8 +44,8 @@ def setup():
     setup_fog()
 
 
-def start(line = 0, column = 0, bomb = 0):
-    window = Window(line, column, bomb, width=1280, height=720, caption='Demineur', fullscreen = False, style = pyglet.window.Window.WINDOW_STYLE_TOOL)
+def start(model, line = 0, column = 0, bomb = 0):
+    window = Window(line, column, bomb, width=1280, height=720, caption=model, fullscreen = False, style = pyglet.window.Window.WINDOW_STYLE_TOOL)
     # Hide the mouse cursor and prevent the mouse from leaving the window.
     window.set_exclusive_mouse(True)
     setup()

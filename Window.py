@@ -2,12 +2,43 @@ from pyglet import image
 from pyglet.gl import *
 from pyglet.graphics import TextureGroup
 from pyglet.window import key, mouse
-from Model import Model
 import sys
 
 from Constants import *
 
 import time
+
+class Rectangle(object):
+    '''Draws a rectangle into a batch.'''
+    def __init__(self, x1, y1, x2, y2, batch):
+        self.vertex_list = batch.add(4, pyglet.gl.GL_QUADS, None,
+            ('v2i', [x1, y1, x2, y1, x2, y2, x1, y2]),
+            ('c4B', [200, 200, 220, 255] * 4)
+        )
+
+class TextWidget(object):
+    def __init__(self, text, x, y, width, batch):
+        self.document = pyglet.text.document.UnformattedDocument(text)
+        self.document.set_style(0, len(self.document.text), 
+            dict(color=(255, 255, 255, 255))
+        )
+        height = 200
+
+        self.layout = pyglet.text.layout.IncrementalTextLayout(
+            self.document, width, height, multiline=False, batch=batch)
+        self.caret = pyglet.text.caret.Caret(self.layout)
+
+        self.layout.x = x
+        self.layout.y = y
+
+        # Rectangular outline
+        pad = 2
+        self.rectangle = Rectangle(x - pad, y - pad, 
+                                   x + width + pad, y + height + pad, batch)
+
+    def hit_test(self, x, y):
+        return (0 < x - self.layout.x < self.layout.width and
+                0 < y - self.layout.y < self.layout.height)
 
 class Window(pyglet.window.Window):
 
@@ -83,8 +114,22 @@ class Window(pyglet.window.Window):
             key._1, key._2, key._3, key._4, key._5,
             key._6, key._7, key._8, key._9, key._0]
 
+        print(kwargs["caption"])
+
         # Instance of the model that handles the world.
-        self.model = Model(line, col, bomb)
+        if kwargs["caption"] == "Demineur":
+            from DemineurModel import DemineurModel
+            self.model = DemineurModel(lines=line, cols=col, bombs=bomb)
+        elif kwargs["caption"] == "BTD":
+            from BinaryThreeDungeonModel import BinaryThreeDungeonModel
+            self.model = BinaryThreeDungeonModel(lines=line, cols=col)
+        elif kwargs["caption"] == "Sudoku":
+            from SudokuModel import SudokuModel
+            print("Creating Sudoku Model")
+            self.model = SudokuModel()
+        elif kwargs["caption"] == "Tetris":
+            from TetrisModel import TetrisModel
+            self.model = TetrisModel()
 
         # The label that is displayed in the top left of the canvas.
         self.label = pyglet.text.Label('', font_name='Arial', font_size=18,
@@ -94,6 +139,16 @@ class Window(pyglet.window.Window):
         self.game_status = pyglet.text.Label('', font_name='Arial', font_size=30,
             x=self.width//2, y=self.height//2, anchor_x='center', anchor_y='center',
             color=(250, 50, 35, 255))
+
+        self.batch = pyglet.graphics.Batch()
+
+        self.widgets = [
+            TextWidget('', 10, 10, self.width - 210, self.batch),
+        ]
+
+        self.focus = None
+
+        self.exploding_sound = pyglet.resource.media("boum.wav", streaming=False)
 
         # This call schedules the `update()` method to be called
         # TICKS_PER_SEC. This is the main game event loop.
@@ -105,6 +160,7 @@ class Window(pyglet.window.Window):
         """
         super(Window, self).set_exclusive_mouse(exclusive)
         self.exclusive = exclusive
+        self.focus = None
 
     def get_sight_vector(self):
         """ Returns the current line of sight vector indicating the direction
@@ -161,7 +217,7 @@ class Window(pyglet.window.Window):
             dz = 0.0
         return (dx, dy, dz)
 
-    def update(self, dt):
+    def update(self, elapsed_time):
         """ This method is scheduled to be called repeatedly by the pyglet
         clock.
 
@@ -179,11 +235,11 @@ class Window(pyglet.window.Window):
                 self.model.process_entire_queue()
             self.sector = sector
         m = 8
-        dt = min(dt, 0.2)
+        elapsed_time = min(elapsed_time, 0.2)
         for _ in xrange(m):
-            self._update(dt / m)
+            self._update(elapsed_time / m)
 
-    def _update(self, dt):
+    def _update(self, elapsed_time):
         """ Private implementation of the `update()` method. This is where most
         of the motion logic lives, along with gravity and collision detection.
 
@@ -194,6 +250,7 @@ class Window(pyglet.window.Window):
 
         """
         # walking
+
         if self.flying:
             speed = FLYING_SPEED
         elif self.sprinting:
@@ -205,14 +262,16 @@ class Window(pyglet.window.Window):
 
         if self.jumping:
             self.dy = JUMP_SPEED
+            if self.flying:
+                self.dy = FLYING_UP_SPEED
 
         if self.jumped:
             speed += 0.7
 
-        d = dt * speed # distance covered this tick.
+        covered_distance_tick = elapsed_time * speed # distance covered this tick.
         dx, dy, dz = self.get_motion_vector()
         # New position in space, before accounting for gravity.
-        dx, dy, dz = dx * d, dy * d, dz * d
+        dx, dy, dz = dx * covered_distance_tick, dy * covered_distance_tick, dz * covered_distance_tick
         # gravity
             # Update your vertical speed: if you are falling, speed up until you
             # hit terminal velocity; if you are jumping, slow down until you
@@ -220,13 +279,16 @@ class Window(pyglet.window.Window):
         if self.crouch:
             self.dy = - 50
         if not self.flying:
-            self.dy -= dt * GRAVITY
+            self.dy -= elapsed_time * GRAVITY
             self.dy = max(self.dy, -TERMINAL_VELOCITY)
         elif self.jumping and self.flying: 
             self.dy = 17
         elif self.flying:
-            self.dy = 0
-        dy += self.dy * dt
+            if self.crouch:
+                self.dy =  FLYING_DOWN_SPEED
+            else:
+                self.dy = 0
+        dy += self.dy * elapsed_time
         # collisions
         old_pos = self.position
         x, y, z = old_pos
@@ -279,7 +341,8 @@ class Window(pyglet.window.Window):
                 d = (p[i] - np[i]) * face[i]
                 if d < pad:
                     continue
-                for dy in xrange(height):  # check each height
+                for dy in xrange(height, height * 2):  # check each height
+                    dy = dy / 2
                     op = list(np)
                     op[1] -= dy
                     op[i] += face[i]
@@ -345,6 +408,7 @@ class Window(pyglet.window.Window):
                     # ON OSX, control + left click = right click.
                     if cell.state != cell._REVEALED and not cell.flagged:
                         if cell.is_bomb:
+                            self.exploding_sound.play()
                             self.model.display_bombs()
                             self.is_losse = True
                             self.set_reset()
@@ -396,47 +460,62 @@ class Window(pyglet.window.Window):
             Number representing any modifying keys that were pressed.
 
         """
-        if symbol == key.Z:
-            self.strafe[0] -= 1
-        elif symbol == key.S:
-            self.strafe[0] += 1
-        elif symbol == key.Q:
-            self.strafe[1] -= 1
-        elif symbol == key.D:
-            self.strafe[1] += 1
-        elif symbol == key.A:
-            self.model.display_bombs()
-        elif symbol == key.E:
-            if (self.is_losse or self.is_win):
-                self.is_losse = False
-                self.is_win = False
-                self.set_reset()
-            self.model.gen_demineur(True, self.is_win)
-        elif symbol == key.SPACE:
-            if self.jumped:
-                print("set flying")
+        if self.exclusive:
+            if symbol == key.Z:
+                self.strafe[0] -= 1
+            elif symbol == key.S:
+                self.strafe[0] += 1
+            elif symbol == key.Q:
+                self.strafe[1] -= 1
+            elif symbol == key.D:
+                self.strafe[1] += 1
+            elif symbol == key.A:
+                self.model.display_bombs()
+            elif symbol == key.T:
+                if (self.focus == self.widgets[0]):
+                    self.set_exclusive_mouse(True)
+                else:
+                    self.set_focus(self.widgets[0])
+                    self.exclusive = False
+            elif symbol == key.E:
+                if (self.is_losse or self.is_win):
+                    self.is_losse = False
+                    self.is_win = False
+                    self.set_reset()
+                self.model.gen_demineur(True, self.is_win)
+            elif symbol == key.W:
+                self.model.display_non_bomb()
+            elif symbol == key.X:
+                self.model.display_bombs()
+                self.model.display_non_bomb()
+            elif symbol == key.SPACE:
+                if self.jumped:
+                    print("set flying")
+                    self.flying = not self.flying
+                    self.jumping = False
+                else:
+                    self.jumping = True
+                    self.jumped = True
+            elif symbol == key.ESCAPE:
+                self.set_exclusive_mouse(False)
+            elif symbol == key.LSHIFT:
+                self.crouch = True
+                if self.sprinting:
+                    self.fov_offset -= SPRINT_FOV
+                    self.sprinting = False
+            elif symbol == key.R:
+                if not self.crouch:
+                    if not self.sprinting:
+                        self.fov_offset += SPRINT_FOV
+                    self.sprinting = True
+            elif symbol == key.TAB:
                 self.flying = not self.flying
-                self.jumping = False
-            else:
-                self.jumping = True
-                self.jumped = True
-        elif symbol == key.ESCAPE:
-            self.set_exclusive_mouse(False)
-        elif symbol == key.LSHIFT:
-            self.crouch = True
-            if self.sprinting:
-                self.fov_offset -= SPRINT_FOV
-                self.sprinting = False
-        elif symbol == key.R:
-            if not self.crouch:
-                if not self.sprinting:
-                    self.fov_offset += SPRINT_FOV
-                self.sprinting = True
-        elif symbol == key.TAB:
-            self.flying = not self.flying
-        elif symbol in self.num_keys:
-            index = (symbol - self.num_keys[0]) % len(self.inventory)
-            self.block = self.inventory[index]
+            elif symbol in self.num_keys:
+                index = (symbol - self.num_keys[0]) % len(self.inventory)
+                self.block = self.inventory[index]
+        else:
+            if symbol == key.ESCAPE:
+                self.set_exclusive_mouse(False)
 
     def on_key_release(self, symbol, modifiers):
         """ Called when the player releases a key. See pyglet docs for key
@@ -450,23 +529,24 @@ class Window(pyglet.window.Window):
             Number representing any modifying keys that were pressed.
 
         """
-        if symbol == key.Z:
-            self.strafe[0] += 1
-        elif symbol == key.S:
-            self.strafe[0] -= 1
-        elif symbol == key.Q:
-            self.strafe[1] += 1
-        elif symbol == key.D:
-            self.strafe[1] -= 1
-        elif symbol == key.SPACE:
-            self.jumping = False
-            self.dy = 0
-            if self.flying:
-                self.jumped = False
-        elif symbol == key.LSHIFT:
-            self.crouch = False
-            if self.flying:
+        if self.exclusive:
+            if symbol == key.Z:
+                self.strafe[0] += 1
+            elif symbol == key.S:
+                self.strafe[0] -= 1
+            elif symbol == key.Q:
+                self.strafe[1] += 1
+            elif symbol == key.D:
+                self.strafe[1] -= 1
+            elif symbol == key.SPACE:
+                self.jumping = False
                 self.dy = 0
+                if self.flying:
+                    self.jumped = False
+            elif symbol == key.LSHIFT:
+                self.crouch = False
+                if self.flying:
+                    self.dy = 0
 
     def on_resize(self, width, height):
         """ Called when the window is resized to a new `width` and `height`.
@@ -481,6 +561,28 @@ class Window(pyglet.window.Window):
         self.reticle = pyglet.graphics.vertex_list(4,
             ('v2i', (x - n, y, x + n, y, x, y - n, x, y + n))
         )
+
+    def set_focus(self, focus):
+        if self.focus:
+            self.focus.caret.visible = False
+            self.focus.caret.mark = self.focus.caret.position = 0
+        self.focus = focus
+        if self.focus:
+            self.focus.caret.visible = True
+            self.focus.caret.mark = 0
+            self.focus.caret.position = len(self.focus.document.text)
+
+    def on_text(self, text):
+        if self.focus:
+            self.focus.caret.on_text(text)
+
+    def on_text_motion(self, motion):
+        if self.focus:
+            self.focus.caret.on_text_motion(motion)
+      
+    def on_text_motion_select(self, motion):
+        if self.focus:
+            self.focus.caret.on_text_motion_select(motion)
 
     def set_2d(self):
         """ Configure OpenGL to draw in 2d.
@@ -533,7 +635,8 @@ class Window(pyglet.window.Window):
         self.set_2d()
         self.draw_label()
         self.draw_reticle()
-        #self.display_menu()
+        if (self.focus == self.widgets[0]):
+            self.batch.draw()
 
     def draw_focused_block(self):
         """ Draw black edges around the block that is currently under the
@@ -556,7 +659,7 @@ class Window(pyglet.window.Window):
         #self.label.text = '%02d (%.2f, %.2f, %.2f) %d / %d' % (
          #   pyglet.clock.get_fps(), x, y, z,
           #  len(self.model._shown), len(self.model.world))
-        self.label.text = "Bomb : {}, Revealed cell : {}, Hidded cell : {}".format(self.model.get_number_of_bombs(), self.model.get_number_of_cell_revealed(), self.model.get_number_of_cell_hidded())
+        #self.label.text = "Bomb : {}, Revealed cell : {}, Hidded cell : {}".format(self.model.get_number_of_bombs(), self.model.get_number_of_cell_revealed(), self.model.get_number_of_cell_hidded())
         if self.is_losse:
             self.game_status.text = " GAME OVER"
         elif self.is_win:

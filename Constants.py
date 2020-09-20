@@ -22,8 +22,11 @@ CROUCH_SPEED = 2
 SPRINT_SPEED = 7
 SPRINT_FOV = SPRINT_SPEED / 2
 
+FLYING_UP_SPEED = 15
+FLYING_DOWN_SPEED = -15
+
 GRAVITY = 25
-JUMP_GRAVITY = 10
+JUMP_GRAVITY = 20
 MAX_JUMP_HEIGHT = 1.5 # About the height of a block.
 # To derive the formula for calculating jump speed, first solve
 #    v_t = v_0 + a * t
@@ -37,7 +40,7 @@ TERMINAL_VELOCITY = 50
 
 # Player variables
 PLAYER_HEIGHT = 2
-PLAYER_FOV = 80.0
+PLAYER_FOV = 70
 
 if sys.version_info[0] >= 3:
     xrange = range
@@ -119,7 +122,7 @@ def sectorize(position):
     return (x, 0, z)
 
 HIDED_CELL = tex_coords((0, 0), (0, 0), (0, 0))
-BOMB = tex_coords((3, 0), (3, 0), (3, 0)) # Bas ->
+BOMB = tex_coords((3, 0), (3, 0), (3, 0))
 FLAG = tex_coords((2, 0), (2, 0), (2, 0))
 RESET = tex_coords((1, 2), (1, 2), (1, 2))
 EMPTY = tex_coords((3, 2), (3, 2), (3, 2))
@@ -133,3 +136,4 @@ FIVE = tex_coords((0, 2), (0, 2), (0, 2))
 SIX = tex_coords((1, 3), (1, 3), (1, 3))
 SEVEN = tex_coords((2, 3), (2, 3), (2, 3))
 EIGHT = tex_coords((3, 3), (3, 3), (3, 3))
+NINE = tex_coords((1, 0), (1, 0), (1, 0))
