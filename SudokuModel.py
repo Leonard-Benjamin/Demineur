@@ -44,8 +44,5 @@ class SudokuModel(Model):
 		sm.gen_sudoku()
 		grid = sm.grid
 		for line in grid:
-			text = ""
 			for cell in line:
-				text += "({}, {})".format(str(len(cell.possible_values)), str(cell.number))
 				self.reveal(cell)
-			print(text)
