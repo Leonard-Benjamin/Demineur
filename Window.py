@@ -2,6 +2,7 @@ from pyglet import image
 from pyglet.gl import *
 from pyglet.graphics import TextureGroup
 from pyglet.window import key, mouse
+from ModelFactory import ModelFactory
 import sys
 
 from Constants import *
@@ -117,19 +118,9 @@ class Window(pyglet.window.Window):
         print(kwargs["caption"])
 
         # Instance of the model that handles the world.
-        if kwargs["caption"] == "Demineur":
-            from DemineurModel import DemineurModel
-            self.model = DemineurModel(lines=line, cols=col, bombs=bomb)
-        elif kwargs["caption"] == "BTD":
-            from BinaryThreeDungeonModel import BinaryThreeDungeonModel
-            self.model = BinaryThreeDungeonModel(lines=line, cols=col)
-        elif kwargs["caption"] == "Sudoku":
-            from SudokuModel import SudokuModel
-            print("Creating Sudoku Model")
-            self.model = SudokuModel()
-        elif kwargs["caption"] == "Tetris":
-            from TetrisModel import TetrisModel
-            self.model = TetrisModel()
+        model_factory = ModelFactory(kwargs["caption"])
+        self.model = model_factory.get_model(line, col, bomb)
+
 
         # The label that is displayed in the top left of the canvas.
         self.label = pyglet.text.Label('', font_name='Arial', font_size=18,

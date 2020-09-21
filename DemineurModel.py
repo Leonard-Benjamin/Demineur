@@ -26,7 +26,6 @@ class DemineurModel(Model):
 
 
 	def gen_demineur(self, immediate = False, is_win=False):
-		self.grid = []
 		arena_min_line = - 15
 		arena_min_col = - 15
 		arena_max_line = self.lines + 15
